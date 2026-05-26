@@ -2819,9 +2819,9 @@ body.prof-mode .prof-mode-badge { display: flex; }
 // ============================================
 // VERSION DE L'APP — affichée sur l'accueil pour vérifier qu'on est bien sur la dernière version déployée
 // ============================================
-const APP_VERSION = '0.18.0';
+const APP_VERSION = '0.18.1';
 const APP_BUILD   = '2026-05-26';
-const APP_NOTES   = 'Mode professeur : annotations par section + statut + bouton « Renvoyer annoté ». Élève : bannière « nouveau retour du prof » et fusion sans doublon.';
+const APP_NOTES   = 'Mode professeur protégé par mot de passe (les élèves voient les commentaires automatiquement, sans rien activer).';
 
 // ============================================
 // CONSEILS — popups chargés depuis tips.md à l'ouverture
@@ -3270,21 +3270,41 @@ function formatDateInput(iso) {
 }
 
 // ============================================
-// MODE PROFESSEUR — toggle persisté
+// MODE PROFESSEUR — toggle persisté + protégé par mot de passe
 // ============================================
 const PROF_MODE_KEY = 'pfmp-mode-prof-v1';
+// Mot de passe pour activer le mode prof (à changer librement ici)
+// Les élèves voient le bouton mais ne peuvent pas activer le mode sans ce code.
+// La désactivation, elle, ne demande pas de mot de passe.
+const PROF_PASSWORD = 'othily2026';
+
 function isProfMode() {
   try { return localStorage.getItem(PROF_MODE_KEY) === '1'; } catch (e) { return false; }
 }
+
+// Demande le mot de passe pour activer le mode prof. Renvoie true si OK.
+function promptProfPassword() {
+  const pwd = window.prompt(
+    'Activation du mode professeur\n\n' +
+    'Saisis le mot de passe pour annoter des fiches.\n' +
+    '(Si tu es élève, tu n\'as pas besoin de ce mode — les commentaires de ton prof s\'affichent automatiquement.)'
+  );
+  if (pwd == null) return false; // Annulation
+  if (pwd.trim().toLowerCase() === PROF_PASSWORD.toLowerCase()) return true;
+  alert('Mot de passe incorrect.');
+  return false;
+}
+
 function setProfMode(on) {
+  // Activation = vérifie le mot de passe. Désactivation = libre.
+  if (on && !isProfMode()) {
+    if (!promptProfPassword()) return; // refus -> on garde l'état précédent
+  }
   try { localStorage.setItem(PROF_MODE_KEY, on ? '1' : '0'); } catch (e) {}
   updateProfToggleUI();
-  // Bandeau visuel sur le body pour pouvoir styler globalement si besoin
   document.body.classList.toggle('prof-mode', !!on);
-  // Re-render de l'accueil pour ajuster les éléments visibles selon le mode
   const homeScreen = document.getElementById('screen-home');
   if (homeScreen && homeScreen.classList.contains('active')) renderHome();
-  // Si une fiche est ouverte, rafraîchir aussi les annotations (champs éditables ou lecture seule)
   const editorScreen = document.getElementById('screen-editor');
   if (editorScreen && editorScreen.classList.contains('active') && currentFicheId) {
     const fiche = getCurrentFiche();
