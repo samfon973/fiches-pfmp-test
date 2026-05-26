@@ -447,6 +447,22 @@ input:focus, textarea:focus, select:focus { outline: none; }
   font-style: italic;
 }
 
+/* Badge "Mode professeur" en haut de l'accueil quand actif */
+.prof-mode-badge {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+body.prof-mode .prof-mode-badge { display: flex; }
+
 .fiche-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1579,6 +1595,124 @@ input:focus, textarea:focus, select:focus { outline: none; }
   opacity: 0.8;
 }
 
+/* ============================================
+   ANNOTATIONS DU PROFESSEUR (mode prof + mode élève)
+   ============================================ */
+/* Bandeau "Retour du professeur" en haut de la fiche */
+.prof-banner {
+  display: none;
+  margin: 12px 16px -4px 16px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.prof-banner.active { display: block; }
+.prof-banner-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.prof-banner-head .icon { font-size: 18px; }
+.prof-statut-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: auto;
+  white-space: nowrap;
+}
+.prof-banner-body { padding: 0 14px 12px; }
+.prof-banner-date { font-size: 11.5px; color: var(--muted); margin-bottom: 8px; }
+.prof-banner-note {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+  background: #FFFBEB;
+  border-left: 3px solid #F59E0B;
+  padding: 10px 12px;
+  border-radius: 0 8px 8px 0;
+  white-space: pre-wrap;
+}
+.prof-statut-select {
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-family: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-left: auto;
+}
+.prof-textarea {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+  background: #FFFBEB;
+  border: 1px solid #FCD34D;
+  border-radius: 8px;
+  resize: vertical;
+  color: var(--text);
+}
+.prof-textarea:focus { outline: none; border-color: #F59E0B; }
+.prof-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.prof-btn {
+  flex: 1;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  background: #F59E0B;
+  color: #fff;
+}
+.prof-btn:active { transform: scale(0.97); }
+.prof-btn.secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+
+/* Bloc commentaire de section */
+.prof-section-slot { display: none; }
+.prof-section-slot.active { display: block; }
+.prof-section-block {
+  margin-top: 18px;
+  border: 1px solid #FCD34D;
+  background: #FFFBEB;
+  border-radius: 10px;
+  padding: 12px 13px;
+}
+.prof-section-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #92400E;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.prof-section-block-text {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.prof-section-block-text:empty::before {
+  content: '(aucun commentaire)';
+  color: var(--muted);
+  font-style: italic;
+}
+
 /* Auto-évaluation grid */
 .eval-scale {
   background: #FEF6E7;
@@ -2147,6 +2281,11 @@ input:focus, textarea:focus, select:focus { outline: none; }
         </div>
       </div>
 
+      <div class="prof-mode-badge">
+        <span>🎓</span>
+        <span>Mode professeur actif — tu peux annoter les fiches de tes élèves.</span>
+      </div>
+
       <div class="section-head">
         <div class="section-title">Mes fiches</div>
         <div class="section-count" id="fiches-count">0 fiches</div>
@@ -2202,6 +2341,9 @@ input:focus, textarea:focus, select:focus { outline: none; }
       </div>
       <div class="progress-strip" id="progress-strip"></div>
     </header>
+
+    <!-- Bandeau "Retour du professeur" : injecté dynamiquement quand pertinent -->
+    <div id="prof-annotation-banner" class="prof-banner"></div>
 
     <div class="pages-container" id="pages-container">
 
@@ -2309,6 +2451,8 @@ input:focus, textarea:focus, select:focus { outline: none; }
           </label>
           <textarea class="textarea" id="f-desc" data-key="descriptionDetaillee" rows="7"></textarea>
         </div>
+
+        <div class="prof-section-slot" data-section="description"></div>
       </div>
 
       <!-- PAGE 3 : PHOTOS & DOCUMENTS -->
@@ -2364,6 +2508,8 @@ input:focus, textarea:focus, select:focus { outline: none; }
           <label class="field-label" for="f-detcomp">Détails des compétences mises en œuvre</label>
           <textarea class="textarea" id="f-detcomp" data-key="detailsCompetences" rows="5"></textarea>
         </div>
+
+        <div class="prof-section-slot" data-section="competences"></div>
       </div>
 
       <!-- PAGE 5 : MATÉRIEL & LOGICIELS -->
@@ -2381,6 +2527,8 @@ input:focus, textarea:focus, select:focus { outline: none; }
           <span class="field-hint">(cliquez pour ajouter, × pour retirer)</span>
         </div>
         <div id="logiciels-container"></div>
+
+        <div class="prof-section-slot" data-section="materiel"></div>
       </div>
 
       <!-- PAGE 6 : DIFFICULTÉS -->
@@ -2398,6 +2546,8 @@ input:focus, textarea:focus, select:focus { outline: none; }
           <label class="field-label" for="f-sol">Solutions apportées</label>
           <textarea class="textarea" id="f-sol" data-key="solutions" rows="5"></textarea>
         </div>
+
+        <div class="prof-section-slot" data-section="difficultes"></div>
       </div>
 
       <!-- PAGE 7 : AUTO-ÉVALUATION -->
@@ -2454,6 +2604,8 @@ input:focus, textarea:focus, select:focus { outline: none; }
           <label class="field-label" for="f-appr">Appréciation personnelle</label>
           <textarea class="textarea" id="f-appr" data-key="appreciation" rows="4"></textarea>
         </div>
+
+        <div class="prof-section-slot" data-section="autoeval"></div>
       </div>
 
       <!-- PAGE 8 : TUTEUR + FINALISATION -->
@@ -2630,6 +2782,10 @@ input:focus, textarea:focus, select:focus { outline: none; }
           <span class="icon">🔄</span>
           Vérifier les mises à jour
         </button>
+        <button class="modal-action" id="home-menu-prof-toggle">
+          <span class="icon" id="prof-toggle-icon">👤</span>
+          <span><span id="prof-toggle-label">Activer le mode professeur</span><br><span style="font-size:12px; color:var(--muted); font-weight:normal;" id="prof-toggle-sub">pour annoter et renvoyer les fiches aux élèves</span></span>
+        </button>
       </div>
     </div>
   </div>
@@ -2663,9 +2819,9 @@ input:focus, textarea:focus, select:focus { outline: none; }
 // ============================================
 // VERSION DE L'APP — affichée sur l'accueil pour vérifier qu'on est bien sur la dernière version déployée
 // ============================================
-const APP_VERSION = '0.17.0';
+const APP_VERSION = '0.18.0';
 const APP_BUILD   = '2026-05-26';
-const APP_NOTES   = 'Identification : Prénom + Nom séparés, n° de PFMP. Accueil : nom de l\'élève visible, recherche et groupement par élève/PFMP/classe.';
+const APP_NOTES   = 'Mode professeur : annotations par section + statut + bouton « Renvoyer annoté ». Élève : bannière « nouveau retour du prof » et fusion sans doublon.';
 
 // ============================================
 // CONSEILS — popups chargés depuis tips.md à l'ouverture
@@ -2969,6 +3125,49 @@ const LOGICIELS = [
 // v3 : chip selectors (custom entries intégrés dans les arrays, plus de *Autre séparés)
 const STORAGE_KEY = 'pfmp-fiches-v3';
 
+// Statuts possibles pour une fiche annotée par le professeur
+const PROF_STATUTS = [
+  { key: '',            label: '— Pas encore évaluée —',  color: '#6B7280', bg: '#F3F4F6' },
+  { key: 'en_cours',    label: 'En cours',                color: '#0369A1', bg: '#E0F2FE' },
+  { key: 'a_corriger',  label: 'À corriger',              color: '#B45309', bg: '#FEF3C7' },
+  { key: 'a_completer', label: 'À compléter',             color: '#7C2D12', bg: '#FED7AA' },
+  { key: 'validee',     label: 'Validée',                 color: '#166534', bg: '#DCFCE7' }
+];
+function getProfStatutInfo(key) {
+  return PROF_STATUTS.find(s => s.key === (key || '')) || PROF_STATUTS[0];
+}
+
+// Sections de la fiche où le prof peut laisser un commentaire ciblé
+const PROF_SECTIONS = [
+  { key: 'description', label: 'Description de l\'activité',  page: 2 },
+  { key: 'competences', label: 'Compétences mobilisées',      page: 4 },
+  { key: 'materiel',    label: 'Matériel & logiciels',        page: 5 },
+  { key: 'difficultes', label: 'Difficultés rencontrées',     page: 6 },
+  { key: 'autoeval',    label: 'Auto-évaluation',             page: 7 }
+];
+
+const DEFAULT_PROF_ANNOTATIONS = {
+  statut: '',
+  noteGlobale: '',
+  parSection: { description: '', competences: '', materiel: '', difficultes: '', autoeval: '' },
+  dateRetour: '',
+  vuParEleve: ''   // ISO date quand l'élève a marqué "vu"
+};
+
+// Renvoie true si la fiche a au moins une annotation prof saisie
+function hasProfAnnotations(fiche) {
+  const a = fiche && fiche.profAnnotations;
+  if (!a) return false;
+  if (a.statut) return true;
+  if (a.noteGlobale && a.noteGlobale.trim()) return true;
+  if (a.parSection) {
+    for (const k in a.parSection) {
+      if (a.parSection[k] && a.parSection[k].trim()) return true;
+    }
+  }
+  return false;
+}
+
 const DEFAULT_FICHE_DATA = {
   nom: '', prenom: '', classe: '', numeroPfmp: '',
   periodeDebut: '', periodeFin: '',
@@ -2989,7 +3188,12 @@ const DEFAULT_FICHE_DATA = {
 function loadFiches() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const arr = raw ? JSON.parse(raw) : [];
+    // Migration : garantir le champ profAnnotations sur chaque fiche
+    if (Array.isArray(arr) && typeof ensureProfAnnotations === 'function') {
+      arr.forEach(ensureProfAnnotations);
+    }
+    return arr;
   } catch (e) { return []; }
 }
 function saveFiches(fiches) {
@@ -3003,8 +3207,29 @@ function newFicheObj() {
     title: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    data: JSON.parse(JSON.stringify(DEFAULT_FICHE_DATA))
+    data: JSON.parse(JSON.stringify(DEFAULT_FICHE_DATA)),
+    profAnnotations: JSON.parse(JSON.stringify(DEFAULT_PROF_ANNOTATIONS))
   };
+}
+// Migration douce : s'assure que profAnnotations existe dans toutes les fiches chargées
+function ensureProfAnnotations(fiche) {
+  if (!fiche.profAnnotations || typeof fiche.profAnnotations !== 'object') {
+    fiche.profAnnotations = JSON.parse(JSON.stringify(DEFAULT_PROF_ANNOTATIONS));
+    return;
+  }
+  // Garantir le sous-objet parSection complet
+  if (!fiche.profAnnotations.parSection || typeof fiche.profAnnotations.parSection !== 'object') {
+    fiche.profAnnotations.parSection = {};
+  }
+  PROF_SECTIONS.forEach(s => {
+    if (fiche.profAnnotations.parSection[s.key] == null) {
+      fiche.profAnnotations.parSection[s.key] = '';
+    }
+  });
+  // Champs scalaires éventuellement manquants
+  ['statut', 'noteGlobale', 'dateRetour', 'vuParEleve'].forEach(k => {
+    if (fiche.profAnnotations[k] == null) fiche.profAnnotations[k] = '';
+  });
 }
 
 // Deep get/set by dot-path (e.g. "competences.C1")
@@ -3042,6 +3267,44 @@ function formatDateInput(iso) {
   const parts = iso.split('-');
   if (parts.length !== 3) return iso;
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+// ============================================
+// MODE PROFESSEUR — toggle persisté
+// ============================================
+const PROF_MODE_KEY = 'pfmp-mode-prof-v1';
+function isProfMode() {
+  try { return localStorage.getItem(PROF_MODE_KEY) === '1'; } catch (e) { return false; }
+}
+function setProfMode(on) {
+  try { localStorage.setItem(PROF_MODE_KEY, on ? '1' : '0'); } catch (e) {}
+  updateProfToggleUI();
+  // Bandeau visuel sur le body pour pouvoir styler globalement si besoin
+  document.body.classList.toggle('prof-mode', !!on);
+  // Re-render de l'accueil pour ajuster les éléments visibles selon le mode
+  const homeScreen = document.getElementById('screen-home');
+  if (homeScreen && homeScreen.classList.contains('active')) renderHome();
+  // Si une fiche est ouverte, rafraîchir aussi les annotations (champs éditables ou lecture seule)
+  const editorScreen = document.getElementById('screen-editor');
+  if (editorScreen && editorScreen.classList.contains('active') && currentFicheId) {
+    const fiche = getCurrentFiche();
+    if (fiche && typeof renderProfAnnotations === 'function') renderProfAnnotations(fiche);
+  }
+}
+function updateProfToggleUI() {
+  const icon = document.getElementById('prof-toggle-icon');
+  const label = document.getElementById('prof-toggle-label');
+  const sub = document.getElementById('prof-toggle-sub');
+  if (!icon || !label || !sub) return;
+  if (isProfMode()) {
+    icon.textContent = '🎓';
+    label.textContent = 'Mode professeur activé';
+    sub.textContent = 'Touchez pour revenir en mode élève';
+  } else {
+    icon.textContent = '👤';
+    label.textContent = 'Activer le mode professeur';
+    sub.textContent = 'pour annoter et renvoyer les fiches aux élèves';
+  }
 }
 
 // ============================================
@@ -3426,9 +3689,19 @@ function ficheCardHtml(f) {
   if (name) identityBits.push('<span class="ident-chip ident-eleve">' + escapeHtml(name) + '</span>');
   if (pfmp) identityBits.push('<span class="ident-chip ident-pfmp">' + escapeHtml(pfmp) + '</span>');
   if (classe) identityBits.push('<span class="ident-chip ident-classe">' + escapeHtml(classe) + '</span>');
+  // Pastille du statut du prof (couleur)
+  if (f.profAnnotations && f.profAnnotations.statut) {
+    const si = getProfStatutInfo(f.profAnnotations.statut);
+    identityBits.push('<span class="ident-chip ident-statut" style="background:' + si.bg + '; color:' + si.color + '; padding:1px 8px; border-radius:999px; font-weight:600; font-size:11.5px;">' + escapeHtml(si.label) + '</span>');
+  }
   const identityHtml = identityBits.length
     ? '<div class="fiche-card-identity">' + identityBits.join('') + '</div>'
     : '';
+  // Badge "nouveau retour prof" : visible côté élève si annotations non encore vues
+  let bandeauRetour = '';
+  if (!isProfMode() && hasProfAnnotations(f) && !(f.profAnnotations && f.profAnnotations.vuParEleve)) {
+    bandeauRetour = '<div style="margin-top:8px; padding:6px 10px; background:#FFFBEB; border:1px solid #FCD34D; border-radius:6px; font-size:11.5px; color:#92400E; font-weight:600;">💬 Nouveau retour du professeur</div>';
+  }
   return `
     <div class="fiche-card" data-id="${f.id}">
       <div class="fiche-card-head">
@@ -3438,6 +3711,7 @@ function ficheCardHtml(f) {
         </button>
       </div>
       ${identityHtml}
+      ${bandeauRetour}
       <div class="fiche-card-meta">
         <span>${formatDate(f.updatedAt)}</span>
         <span>${pct}% complété</span>
@@ -5063,6 +5337,11 @@ function handleImportFileSelected(file) {
       alert('Ce fichier n\u2019est pas un JSON valide.\n\n' + err.message);
       return;
     }
+    // Format "annotations seulement" (retour du prof) -- fusion ciblee sans toucher au contenu pedagogique
+    if (data && data.type === 'pfmp-annotations' && data.fiche && data.fiche.id) {
+      handleAnnotationsImport(data);
+      return;
+    }
     if (!data || data.app !== 'pfmp-fiches' || !Array.isArray(data.fiches)) {
       alert('Ce fichier ne semble pas être une sauvegarde valide de l\u2019app Fiches PFMP.\n\nVérifiez que c\u2019est bien un fichier fiches-pfmp-*.json.');
       return;
@@ -5091,6 +5370,65 @@ function handleImportFileSelected(file) {
 function closeImportModal() {
   document.getElementById('modal-import').classList.remove('active');
   document.getElementById('import-file-input').value = '';
+}
+
+// Import d'un fichier d'annotations seulement (retour du prof).
+// Fusionne par fiche.id, ne touche QUE profAnnotations, jamais le contenu pédagogique.
+function handleAnnotationsImport(payload) {
+  const targetId = payload.fiche.id;
+  const ann = payload.annotations || {};
+  const meta = payload.fiche || {};
+  const labelEleve = [meta.elevePrenom, meta.eleveNom].filter(Boolean).join(' ') || 'élève inconnu';
+  const labelTitre = meta.title || 'Fiche';
+
+  const existing = fiches.find(f => f.id === targetId);
+  if (!existing) {
+    // L'élève n'a pas la fiche d'origine. Cas rare (peut arriver si l'élève a recréé
+    // sa fiche en attendant). On informe et on s'arrête : on ne crée pas une fiche
+    // fantôme sans le contenu pédagogique.
+    alert(
+      'Impossible d\'appliquer le retour du professeur :\n\n' +
+      'la fiche d\'origine (« ' + labelTitre + ' » pour ' + labelEleve + ')\n' +
+      'n\'a pas été trouvée sur cet appareil.\n\n' +
+      'Demandez au professeur de vous renvoyer la fiche complète, ou restaurez\n' +
+      'd\'abord votre sauvegarde fiches-pfmp-*.json puis ré-importez ce retour.'
+    );
+    document.getElementById('import-file-input').value = '';
+    return;
+  }
+
+  // Application de l'annotation : on garde la structure existante mais on écrase
+  // les champs reçus du prof. parSection est fusionnée champ par champ.
+  ensureProfAnnotations(existing);
+  if ('statut' in ann)      existing.profAnnotations.statut = ann.statut || '';
+  if ('noteGlobale' in ann) existing.profAnnotations.noteGlobale = ann.noteGlobale || '';
+  if ('dateRetour' in ann)  existing.profAnnotations.dateRetour = ann.dateRetour || new Date().toISOString();
+  if (ann.parSection && typeof ann.parSection === 'object') {
+    Object.assign(existing.profAnnotations.parSection, ann.parSection);
+  }
+  // Marquer comme non vu : c'est un NOUVEAU retour pour l'élève
+  existing.profAnnotations.vuParEleve = '';
+  existing.updatedAt = new Date().toISOString();
+  saveFiches(fiches);
+
+  // Réinitialiser le champ fichier pour le prochain import
+  document.getElementById('import-file-input').value = '';
+
+  const statutLib = getProfStatutInfo(existing.profAnnotations.statut).label;
+  alert(
+    '✓ Retour du professeur appliqué !\n\n' +
+    'Fiche : « ' + labelTitre + ' »\n' +
+    'Statut : ' + statutLib + '\n\n' +
+    'Ouvrez la fiche pour lire les commentaires du prof.'
+  );
+
+  // Si on est sur l'accueil, on rafraîchit pour montrer la fiche mise à jour
+  const homeScreen = document.getElementById('screen-home');
+  if (homeScreen && homeScreen.classList.contains('active')) renderHome();
+  // Si la fiche est déjà ouverte, on rafraîchit le bandeau
+  if (currentFicheId === targetId && typeof renderProfAnnotations === 'function') {
+    renderProfAnnotations(existing);
+  }
 }
 
 // Restaure les attachments depuis le payload : décode base64 → Blob, insère en IndexedDB
@@ -5212,7 +5550,21 @@ async function applyImportMerge() {
       else {
         const inDate = new Date(incoming.updatedAt || 0).getTime();
         const exDate = new Date(existing.updatedAt || 0).getTime();
-        if (inDate > exDate) { Object.assign(existing, incoming); updated++; }
+        if (inDate > exDate) {
+          // Préserver les annotations du prof si elles sont plus récentes que celles entrantes
+          // (cas : prof importe une nouvelle version de la fiche envoyée par l'élève — l'élève
+          // n'a pas re-annoté, donc le prof garde son retour saisi entre-temps)
+          const oldAnn = existing.profAnnotations;
+          const inAnnDate = new Date((incoming.profAnnotations && incoming.profAnnotations.dateRetour) || 0).getTime();
+          const exAnnDate = new Date((oldAnn && oldAnn.dateRetour) || 0).getTime();
+          Object.assign(existing, incoming);
+          if (oldAnn && (!incoming.profAnnotations || !hasProfAnnotations(incoming) || exAnnDate > inAnnDate)) {
+            existing.profAnnotations = oldAnn;
+          } else {
+            ensureProfAnnotations(existing);
+          }
+          updated++;
+        }
       }
     }
     saveFiches(fiches);
@@ -5289,6 +5641,10 @@ function openFiche(id) {
   // Charger les attachments depuis IndexedDB
   renderAttachments();
 
+  // Rendre le bandeau "Retour du prof" et les blocs commentaire de chaque section
+  ensureProfAnnotations(fiche);
+  renderProfAnnotations(fiche);
+
   // Show editor screen
   document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-editor').classList.add('active');
@@ -5296,6 +5652,209 @@ function openFiche(id) {
 
   // Go to page 1
   goToPage(1);
+}
+
+// ============================================
+// ANNOTATIONS PROFESSEUR — rendu dans la fiche
+// ============================================
+function getCurrentFiche() {
+  return fiches.find(f => f.id === currentFicheId);
+}
+
+function renderProfAnnotations(fiche) {
+  const banner = document.getElementById('prof-annotation-banner');
+  if (!banner) return;
+  const ann = fiche.profAnnotations || {};
+  const prof = isProfMode();
+  const hasAnn = hasProfAnnotations(fiche);
+
+  // ===== BANDEAU EN HAUT =====
+  // Affiché si on est prof (toujours, pour pouvoir saisir) OU si l'élève a un retour
+  const showBanner = prof || hasAnn;
+  banner.classList.toggle('active', showBanner);
+  if (!showBanner) { banner.innerHTML = ''; }
+  else {
+    const statutInfo = getProfStatutInfo(ann.statut);
+    const dateStr = ann.dateRetour ? formatDate(ann.dateRetour) : '';
+    if (prof) {
+      // ÉDITION (prof) : sélecteur de statut + textarea note globale + bouton "Renvoyer annoté"
+      const opts = PROF_STATUTS.map(s =>
+        '<option value="' + s.key + '"' + (s.key === ann.statut ? ' selected' : '') + '>' +
+        escapeHtml(s.label) + '</option>'
+      ).join('');
+      banner.style.background = statutInfo.bg;
+      banner.style.borderColor = statutInfo.color + '40';
+      banner.innerHTML =
+        '<div class="prof-banner-head" style="color:' + statutInfo.color + ';">' +
+          '<span class="icon">🎓</span>' +
+          '<span>Retour du professeur (édition)</span>' +
+          '<select class="prof-statut-select" id="prof-statut-select" style="color:' + statutInfo.color + '; border-color:' + statutInfo.color + '40;">' + opts + '</select>' +
+        '</div>' +
+        '<div class="prof-banner-body">' +
+          (dateStr ? '<div class="prof-banner-date">Dernier retour : ' + escapeHtml(dateStr) + '</div>' : '') +
+          '<textarea class="prof-textarea" id="prof-note-globale" placeholder="Commentaire général sur la fiche (optionnel)…">' + escapeHtml(ann.noteGlobale || '') + '</textarea>' +
+          '<div class="prof-actions">' +
+            '<button type="button" class="prof-btn" id="prof-btn-send">📨 Renvoyer annoté à l\'élève</button>' +
+            '<button type="button" class="prof-btn secondary" id="prof-btn-clear">Effacer le retour</button>' +
+          '</div>' +
+        '</div>';
+
+      document.getElementById('prof-statut-select').addEventListener('change', (e) => {
+        ann.statut = e.target.value;
+        ann.dateRetour = new Date().toISOString();
+        ann.vuParEleve = ''; // tout nouveau retour = non vu
+        saveCurrentFiche();
+        renderProfAnnotations(fiche);
+      });
+      document.getElementById('prof-note-globale').addEventListener('input', (e) => {
+        ann.noteGlobale = e.target.value;
+        ann.dateRetour = new Date().toISOString();
+        ann.vuParEleve = '';
+        saveCurrentFiche();
+      });
+      document.getElementById('prof-btn-send').addEventListener('click', () => sendAnnotatedFiche(fiche));
+      document.getElementById('prof-btn-clear').addEventListener('click', () => {
+        if (!confirm('Effacer toutes les annotations sur cette fiche ?')) return;
+        fiche.profAnnotations = JSON.parse(JSON.stringify(DEFAULT_PROF_ANNOTATIONS));
+        saveCurrentFiche();
+        renderProfAnnotations(fiche);
+      });
+    } else {
+      // LECTURE (élève) : affichage statut + note + bouton "Marquer comme vu"
+      banner.style.background = statutInfo.bg;
+      banner.style.borderColor = statutInfo.color + '40';
+      const isUnseen = !ann.vuParEleve && hasAnn;
+      banner.innerHTML =
+        '<div class="prof-banner-head" style="color:' + statutInfo.color + ';">' +
+          '<span class="icon">' + (isUnseen ? '🆕' : '🎓') + '</span>' +
+          '<span>Retour du professeur</span>' +
+          (ann.statut ? '<span class="prof-statut-pill" style="background:' + statutInfo.color + '; color:#fff;">' + escapeHtml(statutInfo.label) + '</span>' : '') +
+        '</div>' +
+        '<div class="prof-banner-body">' +
+          (dateStr ? '<div class="prof-banner-date">Reçu le ' + escapeHtml(dateStr) + '</div>' : '') +
+          (ann.noteGlobale ? '<div class="prof-banner-note">' + escapeHtml(ann.noteGlobale) + '</div>' : '') +
+          (isUnseen ? '<div class="prof-actions"><button type="button" class="prof-btn secondary" id="prof-btn-seen">✓ J\'ai lu le retour du prof</button></div>' : '') +
+        '</div>';
+      const seenBtn = document.getElementById('prof-btn-seen');
+      if (seenBtn) seenBtn.addEventListener('click', () => {
+        ann.vuParEleve = new Date().toISOString();
+        saveCurrentFiche();
+        renderProfAnnotations(fiche);
+      });
+    }
+  }
+
+  // ===== BLOCS PAR SECTION =====
+  PROF_SECTIONS.forEach(section => {
+    const slot = document.querySelector('.prof-section-slot[data-section="' + section.key + '"]');
+    if (!slot) return;
+    const txt = (ann.parSection && ann.parSection[section.key]) || '';
+    const showSlot = prof || !!txt.trim();
+    slot.classList.toggle('active', showSlot);
+    if (!showSlot) { slot.innerHTML = ''; return; }
+
+    if (prof) {
+      slot.innerHTML =
+        '<div class="prof-section-block">' +
+          '<div class="prof-section-block-head"><span>💬</span><span>Mon commentaire sur cette section</span></div>' +
+          '<textarea class="prof-textarea" data-section-key="' + section.key + '" placeholder="Commentaire ciblé sur ' + escapeHtml(section.label.toLowerCase()) + '…">' + escapeHtml(txt) + '</textarea>' +
+        '</div>';
+      slot.querySelector('textarea').addEventListener('input', (e) => {
+        ann.parSection[section.key] = e.target.value;
+        ann.dateRetour = new Date().toISOString();
+        ann.vuParEleve = '';
+        saveCurrentFiche();
+      });
+    } else {
+      slot.innerHTML =
+        '<div class="prof-section-block">' +
+          '<div class="prof-section-block-head"><span>💬</span><span>Retour du professeur</span></div>' +
+          '<div class="prof-section-block-text">' + escapeHtml(txt) + '</div>' +
+        '</div>';
+    }
+  });
+}
+
+function saveCurrentFiche() {
+  const fiche = getCurrentFiche();
+  if (!fiche) return;
+  fiche.updatedAt = new Date().toISOString();
+  saveFiches(fiches);
+  showSaveIndicator();
+}
+
+// Construit le nom de fichier des annotations renvoyées à l'élève
+function annotationsFilename(fiche) {
+  const d = fiche.data || {};
+  const nom = (d.nom || '').trim().replace(/[^a-zA-ZÀ-ÿ-]/g, '').toUpperCase();
+  const pre = (d.prenom || '').trim().replace(/[^a-zA-ZÀ-ÿ-]/g, '');
+  // Capitalise prénom proprement (1re lettre maj, reste min)
+  const preCap = pre ? (pre.charAt(0).toUpperCase() + pre.slice(1).toLowerCase()) : '';
+  const pfmp = (d.numeroPfmp || '').trim();
+  const parts = [nom, preCap, pfmp ? 'PFMP' + pfmp : ''].filter(Boolean);
+  const base = parts.length ? parts.join('-') : 'fiche';
+  return 'annotations-' + base + '.json';
+}
+
+// Renvoie le JSON des annotations à l'élève via navigator.share / téléchargement
+async function sendAnnotatedFiche(fiche) {
+  if (!fiche) return;
+  ensureProfAnnotations(fiche);
+  // S'assurer que la date est à jour
+  fiche.profAnnotations.dateRetour = new Date().toISOString();
+  fiche.profAnnotations.vuParEleve = '';
+  saveFiches(fiches);
+
+  const d = fiche.data || {};
+  const payload = {
+    type: 'pfmp-annotations',
+    version: 1,
+    dateEnvoi: new Date().toISOString(),
+    fiche: {
+      id: fiche.id,
+      title: fiche.title || '',
+      // Métadonnées pour confirmer à l'élève qu'il s'agit bien de sa fiche
+      eleveNom: d.nom || '',
+      elevePrenom: d.prenom || '',
+      classe: d.classe || '',
+      numeroPfmp: d.numeroPfmp || ''
+    },
+    annotations: {
+      statut: fiche.profAnnotations.statut || '',
+      noteGlobale: fiche.profAnnotations.noteGlobale || '',
+      parSection: Object.assign({}, fiche.profAnnotations.parSection),
+      dateRetour: fiche.profAnnotations.dateRetour || ''
+    }
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'text/plain' });
+  const filename = annotationsFilename(fiche);
+  const labelEleve = ficheStudentName(fiche) || 'élève';
+  const labelFiche = fiche.title || 'Fiche PFMP';
+
+  // Tentative de partage natif (WhatsApp/Mail/Drive…)
+  if (typeof navigator.share === 'function') {
+    try {
+      const file = new File([blob], filename, { type: 'text/plain' });
+      const shareData = {
+        title: 'Retour PFMP — ' + labelEleve,
+        text: 'Retour annoté sur ta fiche « ' + labelFiche + ' ». Ouvre l\'app PFMP et fais « Restaurer ».',
+        files: [file]
+      };
+      await navigator.share(shareData);
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // utilisateur a annulé
+      // Sinon on retombe sur le téléchargement
+      console.warn('navigator.share failed for annotations:', err);
+    }
+  }
+
+  // Fallback : téléchargement
+  const result = await saveBlobAs(blob, filename);
+  if (result && result.aborted) return;
+  alert('Le fichier de retour annoté a été enregistré :\n• ' + filename +
+        '\n\nEnvoyez-le à l\'élève via Pronote, WhatsApp ou mail.');
 }
 
 function goToPage(n) {
@@ -5919,6 +6478,13 @@ document.getElementById('home-menu-restore').addEventListener('click', () => { c
 document.getElementById('home-menu-blank').addEventListener('click', () => { closeHomeMenu(); exportBlankFiche(); });
 document.getElementById('home-menu-tips').addEventListener('click', () => { closeHomeMenu(); showLatestTipManually(); });
 document.getElementById('home-menu-update').addEventListener('click', () => { closeHomeMenu(); checkForUpdates(); });
+document.getElementById('home-menu-prof-toggle').addEventListener('click', () => {
+  setProfMode(!isProfMode());
+  closeHomeMenu();
+});
+// Initialisation de l'UI du toggle au chargement
+updateProfToggleUI();
+if (isProfMode()) document.body.classList.add('prof-mode');
 document.getElementById('import-file-input').addEventListener('change', (e) => {
   const file = e.target.files && e.target.files[0];
   if (file) handleImportFileSelected(file);
