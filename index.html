@@ -3053,11 +3053,11 @@ body.prof-mode .prof-mode-badge { display: flex; }
 // ============================================
 // VERSION DE L'APP — affichée sur l'accueil pour vérifier qu'on est bien sur la dernière version déployée
 // ============================================
-const APP_VERSION = '0.20.0';
+const APP_VERSION = '0.20.1';
 const APP_BUILD   = '2026-05-26';
 // APP_NOTES n'est plus affiché dans le footer (remplacé par le bouton "Notes de version").
 // Garde la dernière note ici uniquement à titre informatif pour la maintenance.
-const APP_NOTES   = 'Bannière de mise à jour persistante + nouvelle fenêtre « Notes de version ».';
+const APP_NOTES   = 'Correctif : la bannière "Mise à jour effectuée" persiste réellement même quand le SW s\'auto-installe.';
 
 // ============================================
 // CONSEILS — popups chargés depuis tips.md à l'ouverture
@@ -7113,10 +7113,10 @@ if ('serviceWorker' in navigator) {
 // ============================================
 // BANNIÈRES DE MISE À JOUR (top, élégantes)
 // ============================================
-// Clé localStorage : on stocke la version courante juste avant le reload de mise à jour
-// → après le reload, on compare avec la nouvelle APP_VERSION pour afficher
-// la confirmation « Mise à jour effectuée ».
-const PRE_UPDATE_VERSION_KEY = 'pfmp-pre-update-version';
+// Détection de mise à jour : on stocke la dernière version VUE par l'utilisateur sur
+// cet appareil. À chaque ouverture de l'app, on compare avec APP_VERSION actuelle.
+// Si différente → une mise à jour s'est produite (manuelle OU auto via SW skipWaiting).
+const LAST_SEEN_VERSION_KEY = 'pfmp-last-seen-version';
 
 // Crée (ou remplace) la bannière du haut. Type : 'update-available' | 'update-done' | 'update-current'
 function showTopBanner(type, contentHtml, opts) {
@@ -7188,9 +7188,6 @@ function showUpToDateBanner() {
 }
 
 function activatePendingSW() {
-  // Mémorise la version actuelle AVANT le reload, pour pouvoir afficher
-  // "Mise à jour effectuée" une fois la nouvelle version chargée.
-  try { localStorage.setItem(PRE_UPDATE_VERSION_KEY, APP_VERSION); } catch (e) {}
   if (!_swRegistration || !_swRegistration.waiting) {
     // Pas de SW en attente : recharge simple
     window.location.reload();
@@ -7201,32 +7198,46 @@ function activatePendingSW() {
 }
 
 // Au chargement de l'app :
-// 1. Si on vient d'installer une nouvelle version → marque la bannière comme "à afficher"
-//    pour cette version (UPDATE_BANNER_PENDING_KEY = APP_VERSION)
-// 2. Si une bannière est marquée "à afficher" pour la version actuelle → on l'affiche
-//    (elle revient même après reload tant que la croix n'a pas été cliquée)
+//
+// 1. On compare la version actuelle (APP_VERSION) avec la dernière version connue
+//    sur cet appareil (LAST_SEEN_VERSION_KEY en localStorage).
+//    Si différente : mise à jour détectée → on pose un drapeau "bannière à afficher".
+//
+// 2. Si le drapeau est posé pour la version actuelle, on affiche la bannière.
+//    Elle reste tant que la croix n'est pas cliquée (drapeau retiré au clic).
+//    → Même après reload, fermeture/relance de l'app, la bannière revient.
+//
+// Ce mécanisme marche que la mise à jour ait été déclenchée par notre bouton
+// "Recharger" OU automatiquement par le Service Worker (skipWaiting à l'install).
 function checkPostUpdateBanner() {
-  let pre = null;
-  try { pre = localStorage.getItem(PRE_UPDATE_VERSION_KEY); } catch (e) {}
+  let lastSeen = null;
+  try { lastSeen = localStorage.getItem(LAST_SEEN_VERSION_KEY); } catch (e) {}
 
-  if (pre) {
-    // Reload juste après une vraie mise à jour
-    try { localStorage.removeItem(PRE_UPDATE_VERSION_KEY); } catch (e) {}
-    if (pre !== APP_VERSION) {
-      // On marque la bannière comme à afficher pour cette nouvelle version
-      try { localStorage.setItem(UPDATE_BANNER_PENDING_KEY, APP_VERSION); } catch (e) {}
-    }
+  if (!lastSeen) {
+    // Première ouverture sur cet appareil (ou localStorage effacé) : on enregistre
+    // la version actuelle, mais on n'affiche PAS la bannière (l'utilisateur ne vient
+    // pas de mettre à jour, il découvre l'app).
+    try { localStorage.setItem(LAST_SEEN_VERSION_KEY, APP_VERSION); } catch (e) {}
+    return;
   }
 
-  // Affichage si une bannière est en attente pour la version actuelle
+  if (lastSeen !== APP_VERSION) {
+    // Mise à jour détectée : on enregistre la nouvelle version vue + on pose le
+    // drapeau "bannière à afficher pour cette version".
+    try {
+      localStorage.setItem(LAST_SEEN_VERSION_KEY, APP_VERSION);
+      localStorage.setItem(UPDATE_BANNER_PENDING_KEY, APP_VERSION);
+    } catch (e) {}
+  }
+
+  // Affichage : si une bannière est en attente pour la version actuelle.
   let pending = null;
   try { pending = localStorage.getItem(UPDATE_BANNER_PENDING_KEY); } catch (e) {}
   if (pending && pending === APP_VERSION) {
     // Petite tempo pour laisser le DOM se peindre avant l'animation d'entrée
     setTimeout(() => showUpdateDoneBanner(APP_VERSION), 200);
   } else if (pending && pending !== APP_VERSION) {
-    // L'utilisateur a fait un saut de version sans avoir fermé une ancienne bannière
-    // → on nettoie l'ancien marqueur, qui n'est plus pertinent
+    // Marqueur orphelin (ancienne version) → nettoyage
     try { localStorage.removeItem(UPDATE_BANNER_PENDING_KEY); } catch (e) {}
   }
 }
