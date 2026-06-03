@@ -7,7 +7,20 @@
 <title>Fiche PFMP — Bac Pro Géomètre</title>
 
 <!-- PWA : manifest + icônes -->
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json" id="app-manifest">
+<script>
+  // Détection staging : si l'URL contient "-test/", on bascule sur le manifest test
+  // pour que la PWA installée s'appelle "Fiches PFMP — VERSION TEST" et soit
+  // visuellement distincte de la version de production.
+  (function () {
+    if (location.pathname.indexOf('-test/') !== -1) {
+      var m = document.getElementById('app-manifest');
+      if (m) m.href = 'manifest-test.json';
+      // Marqueur global pour le reste de l'app
+      window.__IS_TEST_BUILD__ = true;
+    }
+  })();
+</script>
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <!-- iOS Safari : utilise apple-touch-icon, pas l'icône standard -->
@@ -661,6 +674,35 @@ input:focus, textarea:focus, select:focus { outline: none; }
   text-decoration: none;
 }
 .version-footer-link:active { background: var(--border); }
+
+/* ============================================
+   BANDEAU "VERSION TEST" — présent en permanence en haut sur staging
+   ============================================ */
+.staging-ribbon {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 250;  /* sous les modales (300+) et sous les bannières d'update (300) */
+  background: repeating-linear-gradient(
+    -45deg,
+    #EA580C 0,
+    #EA580C 14px,
+    #C2410C 14px,
+    #C2410C 28px
+  );
+  color: #fff;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  pointer-events: none; /* ne bloque pas les clics sur le contenu */
+}
+/* Décalage global du contenu pour ne pas être caché par le ruban */
+body.staging-build { padding-top: 22px; }
 
 /* Badge "Mode professeur" en haut de l'accueil quand actif */
 .prof-mode-badge {
@@ -3053,11 +3095,11 @@ body.prof-mode .prof-mode-badge { display: flex; }
 // ============================================
 // VERSION DE L'APP — affichée sur l'accueil pour vérifier qu'on est bien sur la dernière version déployée
 // ============================================
-const APP_VERSION = '0.20.2';
+const APP_VERSION = '0.20.3';
 const APP_BUILD   = '2026-05-26';
 // APP_NOTES n'est plus affiché dans le footer (remplacé par le bouton "Notes de version").
 // Garde la dernière note ici uniquement à titre informatif pour la maintenance.
-const APP_NOTES   = 'Vraie persistance de la bannière de mise à jour + mode test ?test-banner=1.';
+const APP_NOTES   = 'Infrastructure staging : bandeau orange « Version test » sur l\'URL de staging.';
 
 // ============================================
 // CONSEILS — popups chargés depuis tips.md à l'ouverture
@@ -7004,6 +7046,18 @@ function closeVersionsModal() {
   const modal = document.getElementById('modal-versions');
   if (modal) modal.classList.remove('active');
 }
+
+// ============================================
+// BANDEAU "VERSION TEST" — visible uniquement sur la build staging
+// ============================================
+(function initStagingRibbon() {
+  if (!window.__IS_TEST_BUILD__) return;
+  document.body.classList.add('staging-build');
+  const ribbon = document.createElement('div');
+  ribbon.className = 'staging-ribbon';
+  ribbon.textContent = '⚠ Version test — ne pas utiliser pour de vraies fiches';
+  document.body.appendChild(ribbon);
+})();
 
 // Init — affiche la version dans le footer (utile pour vérifier qu'on a bien la dernière version uploadée)
 // Les notes détaillées sont consultables via le bouton "Notes de version" (versions.md)

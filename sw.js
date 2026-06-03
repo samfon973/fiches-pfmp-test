@@ -5,11 +5,12 @@
 // ============================================
 
 // Bumper ce numéro à chaque déploiement → force la mise à jour du cache des élèves.
-const CACHE_VERSION = 'pfmp-v0.20.2';
+const CACHE_VERSION = 'pfmp-v0.20.3';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
+  './manifest-test.json',
   './icon-192.png',
   './icon-512.png',
   './icon-512-maskable.png',
