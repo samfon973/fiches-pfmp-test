@@ -550,6 +550,118 @@ input:focus, textarea:focus, select:focus { outline: none; }
   }
 }
 
+/* ============================================
+   MODALE "Notes de version"
+   ============================================ */
+.versions-dialog {
+  max-width: 540px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+.versions-head {
+  display: flex;
+  align-items: center;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 14px 14px 0 0;
+}
+.versions-title {
+  flex: 1;
+  font-family: 'Fraunces', serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text);
+}
+.versions-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.versions-close:active { background: var(--border); color: var(--text); }
+.versions-body {
+  overflow-y: auto;
+  padding: 16px 22px 22px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.versions-loading {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--muted);
+  font-style: italic;
+}
+.versions-entry {
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px dashed var(--border);
+}
+.versions-entry:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.versions-entry-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.versions-entry-version {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  background: #DBEAFE;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.versions-entry-date {
+  font-size: 12px;
+  color: var(--muted);
+}
+.versions-entry-subtitle {
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.versions-entry-body { color: var(--text); }
+.versions-entry-body ul { margin: 0; padding-left: 22px; }
+.versions-entry-body li { margin-bottom: 4px; }
+.versions-entry-body p { margin: 0 0 8px; }
+.versions-entry-body code {
+  background: #F1F5F9;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+}
+.versions-entry-body strong { color: var(--text); font-weight: 700; }
+
+/* Lien "Notes de version" dans le pied de page */
+.version-footer-link {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.version-footer-link:active { background: var(--border); }
+
 /* Badge "Mode professeur" en haut de l'accueil quand actif */
 .prof-mode-badge {
   display: none;
@@ -2423,8 +2535,10 @@ body.prof-mode .prof-mode-badge { display: flex; }
 
       <div class="version-footer" id="version-footer">
         Fiches PFMP · v<span id="app-version">…</span> · build du <span id="app-build">…</span>
-        <div class="version-notes" id="version-notes"></div>
-        <div class="storage-badge" id="storage-badge" style="margin-top:6px; font-family:inherit; font-size:10.5px; opacity:0.95;">…</div>
+        <div style="margin-top:6px;">
+          <button type="button" class="version-footer-link" id="btn-versions">📋 Notes de version</button>
+        </div>
+        <div class="storage-badge" id="storage-badge" style="margin-top:8px; font-family:inherit; font-size:10.5px; opacity:0.95;">…</div>
       </div>
     </div>
 
@@ -2897,6 +3011,19 @@ body.prof-mode .prof-mode-badge { display: flex; }
     </div>
   </div>
 
+  <!-- ===== MODALE NOTES DE VERSION ===== -->
+  <div class="modal-overlay" id="modal-versions" style="align-items:center;">
+    <div class="confirm-dialog versions-dialog">
+      <div class="versions-head">
+        <div class="versions-title">Notes de version</div>
+        <button type="button" class="versions-close" id="versions-close" aria-label="Fermer">×</button>
+      </div>
+      <div class="versions-body" id="versions-body">
+        <div class="versions-loading">Chargement…</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== MODALE RESTAURATION (import JSON) ===== -->
   <div class="modal-overlay" id="modal-import" style="align-items:center;">
     <div class="confirm-dialog" style="max-width:460px;">
@@ -2926,9 +3053,11 @@ body.prof-mode .prof-mode-badge { display: flex; }
 // ============================================
 // VERSION DE L'APP — affichée sur l'accueil pour vérifier qu'on est bien sur la dernière version déployée
 // ============================================
-const APP_VERSION = '0.19.0';
+const APP_VERSION = '0.20.0';
 const APP_BUILD   = '2026-05-26';
-const APP_NOTES   = 'Bannière « Mise à jour effectuée » qui s\'affiche en haut après chaque mise à jour réussie. Bannière « Application à jour » discrète après une vérification manuelle.';
+// APP_NOTES n'est plus affiché dans le footer (remplacé par le bouton "Notes de version").
+// Garde la dernière note ici uniquement à titre informatif pour la maintenance.
+const APP_NOTES   = 'Bannière de mise à jour persistante + nouvelle fenêtre « Notes de version ».';
 
 // ============================================
 // CONSEILS — popups chargés depuis tips.md à l'ouverture
@@ -6744,6 +6873,16 @@ document.getElementById('confirm-ok').addEventListener('click', () => {
   closeConfirm();
 });
 
+// Bouton "Notes de version" + fermeture du modal
+const _btnVersions = document.getElementById('btn-versions');
+if (_btnVersions) _btnVersions.addEventListener('click', openVersionsModal);
+const _btnVersionsClose = document.getElementById('versions-close');
+if (_btnVersionsClose) _btnVersionsClose.addEventListener('click', closeVersionsModal);
+const _modalVersions = document.getElementById('modal-versions');
+if (_modalVersions) _modalVersions.addEventListener('click', (e) => {
+  if (e.target.id === 'modal-versions') closeVersionsModal();
+});
+
 // Empêcher la soumission accidentelle (mobile keyboard)
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'textarea') {
@@ -6751,11 +6890,126 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ============================================
+// MODALE NOTES DE VERSION — chargement et rendu de versions.md
+// ============================================
+let _versionsMdCache = null;
+
+async function loadVersionsMd() {
+  if (_versionsMdCache != null) return _versionsMdCache;
+  try {
+    const res = await fetch('versions.md', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('versions.md introuvable (' + res.status + ')');
+    _versionsMdCache = await res.text();
+    return _versionsMdCache;
+  } catch (e) {
+    console.warn('[Versions] Chargement impossible :', e.message || e);
+    return null;
+  }
+}
+
+// Parser minimaliste pour versions.md
+// Format : sections "## vX.Y.Z — date" séparées par "---"
+function parseVersionsMd(text) {
+  if (!text) return [];
+  const sections = text.split(/^---\s*$/m);
+  const entries = [];
+  for (const section of sections) {
+    const trimmed = section.trim();
+    if (!trimmed) continue;
+    // Cherche le header "## vX.Y.Z — date" ou "## vX.Y.Z - date"
+    const headMatch = trimmed.match(/^##\s+v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)\s*[—–-]\s*(.+?)$/m);
+    if (!headMatch) continue;
+    const version = headMatch[1];
+    const date = headMatch[2].trim();
+    // Le body est tout ce qui suit la ligne de header
+    const bodyStart = trimmed.indexOf(headMatch[0]) + headMatch[0].length;
+    const body = trimmed.slice(bodyStart).trim();
+    entries.push({ version, date, body });
+  }
+  return entries;
+}
+
+// Mini-renderer markdown → HTML pour le body des entrées
+// (bullets, paragraphes, gras, code inline ; pas de support complet)
+function miniMdToHtml(md) {
+  if (!md) return '';
+  const lines = md.split('\n');
+  let html = '';
+  let inList = false;
+  let inSubtitle = false;
+  const closeList = () => { if (inList) { html += '</ul>'; inList = false; } };
+  const escape = (s) => s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const inlineFmt = (s) => {
+    let r = escape(s);
+    // Code inline
+    r = r.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Gras
+    r = r.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Italique (simple)
+    r = r.replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1<em>$2</em>');
+    return r;
+  };
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const line = raw.trim();
+    if (!line) { closeList(); continue; }
+    if (line.startsWith('**') && line.endsWith('**') && line.length > 4) {
+      closeList();
+      html += '<div class="versions-entry-subtitle">' + inlineFmt(line.slice(2, -2)) + '</div>';
+      continue;
+    }
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += '<li>' + inlineFmt(line.slice(2)) + '</li>';
+      continue;
+    }
+    closeList();
+    // Paragraphe ordinaire
+    html += '<p>' + inlineFmt(line) + '</p>';
+  }
+  closeList();
+  return html;
+}
+
+async function openVersionsModal() {
+  const modal = document.getElementById('modal-versions');
+  const body = document.getElementById('versions-body');
+  if (!modal || !body) return;
+  body.innerHTML = '<div class="versions-loading">Chargement…</div>';
+  modal.classList.add('active');
+  const md = await loadVersionsMd();
+  if (md == null) {
+    body.innerHTML = '<div class="versions-loading">Impossible de charger les notes de version. Vérifie ta connexion.</div>';
+    return;
+  }
+  const entries = parseVersionsMd(md);
+  if (entries.length === 0) {
+    body.innerHTML = '<div class="versions-loading">Aucune entrée trouvée dans <code>versions.md</code>.</div>';
+    return;
+  }
+  body.innerHTML = entries.map(e =>
+    '<div class="versions-entry">' +
+      '<div class="versions-entry-head">' +
+        '<span class="versions-entry-version">v' + e.version + '</span>' +
+        '<span class="versions-entry-date">' + e.date + '</span>' +
+      '</div>' +
+      '<div class="versions-entry-body">' + miniMdToHtml(e.body) + '</div>' +
+    '</div>'
+  ).join('');
+  body.scrollTop = 0;
+}
+
+function closeVersionsModal() {
+  const modal = document.getElementById('modal-versions');
+  if (modal) modal.classList.remove('active');
+}
+
 // Init — affiche la version dans le footer (utile pour vérifier qu'on a bien la dernière version uploadée)
+// Les notes détaillées sont consultables via le bouton "Notes de version" (versions.md)
 (function initVersionFooter() {
   const v = document.getElementById('app-version');
   const b = document.getElementById('app-build');
-  const n = document.getElementById('version-notes');
   if (v) v.textContent = APP_VERSION;
   if (b) {
     try {
@@ -6763,7 +7017,6 @@ document.addEventListener('keydown', (e) => {
       b.textContent = d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
     } catch (e) { b.textContent = APP_BUILD; }
   }
-  if (n && APP_NOTES) n.textContent = '« ' + APP_NOTES + ' »';
 })();
 
 // ============================================
@@ -6903,24 +7156,33 @@ function showUpdateBanner() {
   document.getElementById('update-later').addEventListener('click', bar.dismiss);
 }
 
-// Bannière "Mise à jour effectuée" — auto-disparaît après quelques secondes
-function showUpdateDoneBanner(fromVersion, toVersion) {
+// Clé localStorage : version pour laquelle la bannière "Mise à jour effectuée"
+// doit être affichée. Tant que l'utilisateur n'a pas cliqué la croix,
+// la bannière revient à chaque chargement de l'app.
+const UPDATE_BANNER_PENDING_KEY = 'pfmp-update-banner-pending-for';
+
+function showUpdateDoneBanner(toVersion) {
   const html =
-    '<span class="top-banner-text">✓ Mise à jour effectuée' +
+    '<span class="top-banner-text">✓ Mise à jour effectuée vers la version' +
     '<span class="top-banner-version">v' + escapeHtml(toVersion) + '</span></span>' +
     '<button type="button" class="top-banner-close" aria-label="Fermer">×</button>';
-  const bar = showTopBanner('update-done', html, { autoDismissMs: 8000 });
+  const bar = showTopBanner('update-done', html); // pas d'auto-dismiss
   const closeBtn = bar.querySelector('.top-banner-close');
-  if (closeBtn) closeBtn.addEventListener('click', bar.dismiss);
+  if (closeBtn) closeBtn.addEventListener('click', () => {
+    // L'utilisateur a vu et fermé : on ne la ré-affichera plus pour cette version
+    try { localStorage.removeItem(UPDATE_BANNER_PENDING_KEY); } catch (e) {}
+    bar.dismiss();
+  });
 }
 
-// Bannière "Application à jour" — vérif manuelle quand rien à installer
+// Bannière "Application à jour" — vérif manuelle quand rien à installer.
+// Persistante aussi (clic croix pour fermer), garde la même cohérence visuelle.
 function showUpToDateBanner() {
   const html =
     '<span class="top-banner-text">✓ Application à jour' +
     '<span class="top-banner-version">v' + escapeHtml(APP_VERSION) + '</span></span>' +
     '<button type="button" class="top-banner-close" aria-label="Fermer">×</button>';
-  const bar = showTopBanner('update-current', html, { autoDismissMs: 6000 });
+  const bar = showTopBanner('update-current', html);
   const closeBtn = bar.querySelector('.top-banner-close');
   if (closeBtn) closeBtn.addEventListener('click', bar.dismiss);
 }
@@ -6938,16 +7200,34 @@ function activatePendingSW() {
   // Le controllerchange listener au-dessus déclenchera le reload
 }
 
-// Au chargement de l'app : si on vient d'installer une nouvelle version, l'annoncer
+// Au chargement de l'app :
+// 1. Si on vient d'installer une nouvelle version → marque la bannière comme "à afficher"
+//    pour cette version (UPDATE_BANNER_PENDING_KEY = APP_VERSION)
+// 2. Si une bannière est marquée "à afficher" pour la version actuelle → on l'affiche
+//    (elle revient même après reload tant que la croix n'a pas été cliquée)
 function checkPostUpdateBanner() {
   let pre = null;
   try { pre = localStorage.getItem(PRE_UPDATE_VERSION_KEY); } catch (e) {}
+
   if (pre) {
+    // Reload juste après une vraie mise à jour
     try { localStorage.removeItem(PRE_UPDATE_VERSION_KEY); } catch (e) {}
     if (pre !== APP_VERSION) {
-      // Petite tempo pour laisser le DOM se peindre avant l'animation d'entrée
-      setTimeout(() => showUpdateDoneBanner(pre, APP_VERSION), 200);
+      // On marque la bannière comme à afficher pour cette nouvelle version
+      try { localStorage.setItem(UPDATE_BANNER_PENDING_KEY, APP_VERSION); } catch (e) {}
     }
+  }
+
+  // Affichage si une bannière est en attente pour la version actuelle
+  let pending = null;
+  try { pending = localStorage.getItem(UPDATE_BANNER_PENDING_KEY); } catch (e) {}
+  if (pending && pending === APP_VERSION) {
+    // Petite tempo pour laisser le DOM se peindre avant l'animation d'entrée
+    setTimeout(() => showUpdateDoneBanner(APP_VERSION), 200);
+  } else if (pending && pending !== APP_VERSION) {
+    // L'utilisateur a fait un saut de version sans avoir fermé une ancienne bannière
+    // → on nettoie l'ancien marqueur, qui n'est plus pertinent
+    try { localStorage.removeItem(UPDATE_BANNER_PENDING_KEY); } catch (e) {}
   }
 }
 

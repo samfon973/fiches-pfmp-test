@@ -5,7 +5,7 @@
 // ============================================
 
 // Bumper ce numéro à chaque déploiement → force la mise à jour du cache des élèves.
-const CACHE_VERSION = 'pfmp-v0.19.0';
+const CACHE_VERSION = 'pfmp-v0.20.0';
 const APP_SHELL = [
   './',
   './index.html',
@@ -80,9 +80,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Données dynamiques (tips.md) → network-first comme l'HTML, pour que les nouveaux conseils
-  // arrivent dès qu'ils sont en ligne sans devoir bumper CACHE_VERSION.
-  if (url.pathname.endsWith('/tips.md')) {
+  // Données dynamiques (tips.md, versions.md) → network-first comme l'HTML, pour que les
+  // nouveaux contenus arrivent dès qu'ils sont en ligne sans devoir bumper CACHE_VERSION.
+  if (url.pathname.endsWith('/tips.md') || url.pathname.endsWith('/versions.md')) {
     event.respondWith(
       fetch(req, { cache: 'no-cache' }).then((res) => {
         const copy = res.clone();
