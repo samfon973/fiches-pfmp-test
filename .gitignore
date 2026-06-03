@@ -14,9 +14,10 @@ guide-markdown.md
 
 # Sauvegardes / brouillons / tests
 # Ignore tous les .json à la racine (sauvegardes d'élèves, exports...)
-# SAUF manifest.json qui doit aller sur GitHub
+# SAUF les manifests PWA qui doivent aller sur GitHub
 /*.json
 !/manifest.json
+!/manifest-test.json
 *.pdf
 
 # Système Windows / éditeurs
