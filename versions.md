@@ -4,6 +4,12 @@ Historique des mises à jour de l'application.
 
 ---
 
+## v0.20.4 — 26 mai 2026
+
+- Bump de validation de la persistance de la bannière « Mise à jour effectuée » en condition réelle (push staging uniquement).
+
+---
+
 ## v0.20.3 — 26 mai 2026
 
 - Infrastructure de staging : bandeau orange permanent « Version test » sur l'URL `samfon973.github.io/fiches-pfmp-test/` et nom de PWA distinct (« Fiches PFMP — VERSION TEST ») pour éviter les confusions.
