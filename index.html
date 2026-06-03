@@ -447,6 +447,109 @@ input:focus, textarea:focus, select:focus { outline: none; }
   font-style: italic;
 }
 
+/* ============================================
+   BANNIÈRE DE MISE À JOUR (en haut de l'écran)
+   ============================================ */
+.app-top-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.18);
+  animation: appTopBannerIn 0.35s ease-out;
+}
+@keyframes appTopBannerIn {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.app-top-banner.fade-out {
+  animation: appTopBannerOut 0.4s ease-in forwards;
+}
+@keyframes appTopBannerOut {
+  to { transform: translateY(-110%); opacity: 0; }
+}
+/* Variante "Nouvelle mise à jour disponible" — vert pomme */
+.app-top-banner.update-available { background: #059669; }
+/* Variante "Mise à jour effectuée" — vert plus sombre, plus calme */
+.app-top-banner.update-done       { background: #047857; }
+/* Variante "À jour" (en cas de vérif manuelle) — gris foncé discret */
+.app-top-banner.update-current    { background: #475569; }
+
+.app-top-banner .top-banner-text {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  line-height: 1.35;
+}
+.app-top-banner .top-banner-version {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.22);
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+.app-top-banner .top-banner-btn {
+  background: #fff;
+  color: var(--text);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.app-top-banner.update-available .top-banner-btn { color: #059669; }
+.app-top-banner.update-done .top-banner-btn { color: #047857; }
+.app-top-banner.update-current .top-banner-btn { color: #475569; }
+.app-top-banner .top-banner-btn-secondary {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.app-top-banner .top-banner-close {
+  background: transparent;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.app-top-banner .top-banner-close:active { opacity: 1; background: rgba(255,255,255,0.15); }
+
+/* Sur mobile très étroit : empile texte / boutons */
+@media (max-width: 380px) {
+  .app-top-banner {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .app-top-banner .top-banner-text {
+    flex-basis: 100%;
+    font-size: 13.5px;
+  }
+}
+
 /* Badge "Mode professeur" en haut de l'accueil quand actif */
 .prof-mode-badge {
   display: none;
@@ -2823,9 +2926,9 @@ body.prof-mode .prof-mode-badge { display: flex; }
 // ============================================
 // VERSION DE L'APP — affichée sur l'accueil pour vérifier qu'on est bien sur la dernière version déployée
 // ============================================
-const APP_VERSION = '0.18.2';
+const APP_VERSION = '0.19.0';
 const APP_BUILD   = '2026-05-26';
-const APP_NOTES   = 'Mot de passe du mode professeur personnalisable depuis le menu (en mode prof actif).';
+const APP_NOTES   = 'Bannière « Mise à jour effectuée » qui s\'affiche en haut après chaque mise à jour réussie. Bannière « Application à jour » discrète après une vérification manuelle.';
 
 // ============================================
 // CONSEILS — popups chargés depuis tips.md à l'ouverture
@@ -6713,6 +6816,8 @@ let _swRegistration = null;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    // Annonce post-update s'il y a lieu (compare version avant/après reload)
+    if (typeof checkPostUpdateBanner === 'function') checkPostUpdateBanner();
     navigator.serviceWorker.register('sw.js')
       .then((reg) => {
         _swRegistration = reg;
@@ -6752,21 +6857,78 @@ if ('serviceWorker' in navigator) {
 }
 
 // Bannière « Nouvelle version disponible — Recharger »
-function showUpdateBanner() {
-  let bar = document.getElementById('update-banner');
-  if (!bar) {
-    bar = document.createElement('div');
-    bar.id = 'update-banner';
-    bar.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:300; background:#059669; color:#fff; padding:11px 14px; display:flex; align-items:center; justify-content:center; gap:10px; font-size:14px; font-weight:500; box-shadow:0 3px 12px rgba(5,150,105,0.35);';
-    bar.innerHTML = '✨ Nouvelle version disponible <button id="update-now" style="background:#fff; color:#059669; padding:6px 14px; border-radius:8px; font-size:13px; font-weight:700; margin-left:6px;">Recharger</button>' +
-                    '<button id="update-later" style="background:transparent; color:#fff; padding:6px 10px; border:1px solid rgba(255,255,255,0.5); border-radius:8px; font-size:12px;">Plus tard</button>';
-    document.body.appendChild(bar);
-    document.getElementById('update-now').addEventListener('click', activatePendingSW);
-    document.getElementById('update-later').addEventListener('click', () => bar.remove());
+// ============================================
+// BANNIÈRES DE MISE À JOUR (top, élégantes)
+// ============================================
+// Clé localStorage : on stocke la version courante juste avant le reload de mise à jour
+// → après le reload, on compare avec la nouvelle APP_VERSION pour afficher
+// la confirmation « Mise à jour effectuée ».
+const PRE_UPDATE_VERSION_KEY = 'pfmp-pre-update-version';
+
+// Crée (ou remplace) la bannière du haut. Type : 'update-available' | 'update-done' | 'update-current'
+function showTopBanner(type, contentHtml, opts) {
+  opts = opts || {};
+  // Si une bannière existe déjà, on la remplace proprement
+  const old = document.getElementById('app-top-banner');
+  if (old) old.remove();
+
+  const bar = document.createElement('div');
+  bar.id = 'app-top-banner';
+  bar.className = 'app-top-banner ' + type;
+  bar.innerHTML = contentHtml;
+  document.body.appendChild(bar);
+
+  // Fermeture programmable
+  function dismiss() {
+    bar.classList.add('fade-out');
+    setTimeout(() => bar.remove(), 450);
   }
+  bar.dismiss = dismiss;
+
+  // Auto-dismiss si demandé
+  if (opts.autoDismissMs && opts.autoDismissMs > 0) {
+    setTimeout(dismiss, opts.autoDismissMs);
+  }
+  return bar;
+}
+
+// Bannière "Nouvelle mise à jour disponible" — rester visible jusqu'à action utilisateur
+function showUpdateBanner() {
+  const html =
+    '<span class="top-banner-text">✨ Nouvelle mise à jour disponible</span>' +
+    '<button type="button" class="top-banner-btn" id="update-now">Recharger</button>' +
+    '<button type="button" class="top-banner-btn-secondary" id="update-later">Plus tard</button>';
+  const bar = showTopBanner('update-available', html);
+  document.getElementById('update-now').addEventListener('click', activatePendingSW);
+  document.getElementById('update-later').addEventListener('click', bar.dismiss);
+}
+
+// Bannière "Mise à jour effectuée" — auto-disparaît après quelques secondes
+function showUpdateDoneBanner(fromVersion, toVersion) {
+  const html =
+    '<span class="top-banner-text">✓ Mise à jour effectuée' +
+    '<span class="top-banner-version">v' + escapeHtml(toVersion) + '</span></span>' +
+    '<button type="button" class="top-banner-close" aria-label="Fermer">×</button>';
+  const bar = showTopBanner('update-done', html, { autoDismissMs: 8000 });
+  const closeBtn = bar.querySelector('.top-banner-close');
+  if (closeBtn) closeBtn.addEventListener('click', bar.dismiss);
+}
+
+// Bannière "Application à jour" — vérif manuelle quand rien à installer
+function showUpToDateBanner() {
+  const html =
+    '<span class="top-banner-text">✓ Application à jour' +
+    '<span class="top-banner-version">v' + escapeHtml(APP_VERSION) + '</span></span>' +
+    '<button type="button" class="top-banner-close" aria-label="Fermer">×</button>';
+  const bar = showTopBanner('update-current', html, { autoDismissMs: 6000 });
+  const closeBtn = bar.querySelector('.top-banner-close');
+  if (closeBtn) closeBtn.addEventListener('click', bar.dismiss);
 }
 
 function activatePendingSW() {
+  // Mémorise la version actuelle AVANT le reload, pour pouvoir afficher
+  // "Mise à jour effectuée" une fois la nouvelle version chargée.
+  try { localStorage.setItem(PRE_UPDATE_VERSION_KEY, APP_VERSION); } catch (e) {}
   if (!_swRegistration || !_swRegistration.waiting) {
     // Pas de SW en attente : recharge simple
     window.location.reload();
@@ -6774,6 +6936,19 @@ function activatePendingSW() {
   }
   _swRegistration.waiting.postMessage({ type: 'skip-waiting' });
   // Le controllerchange listener au-dessus déclenchera le reload
+}
+
+// Au chargement de l'app : si on vient d'installer une nouvelle version, l'annoncer
+function checkPostUpdateBanner() {
+  let pre = null;
+  try { pre = localStorage.getItem(PRE_UPDATE_VERSION_KEY); } catch (e) {}
+  if (pre) {
+    try { localStorage.removeItem(PRE_UPDATE_VERSION_KEY); } catch (e) {}
+    if (pre !== APP_VERSION) {
+      // Petite tempo pour laisser le DOM se peindre avant l'animation d'entrée
+      setTimeout(() => showUpdateDoneBanner(pre, APP_VERSION), 200);
+    }
+  }
 }
 
 // Vérification manuelle (depuis le menu ⋮)
@@ -6790,10 +6965,8 @@ async function checkForUpdates() {
       // On force aussi son apparition au cas où
       showUpdateBanner();
     } else {
-      // Pas de mise à jour détectée → on recharge quand même au cas où
-      // (avec cache: 'no-cache' du SW, c'est sûr d'être à jour)
-      alert('Vous êtes sur la dernière version (v' + APP_VERSION + ').\nRechargement pour vérifier…');
-      window.location.reload();
+      // Pas de mise à jour détectée → on l'annonce avec une bannière discrète
+      showUpToDateBanner();
     }
   } catch (e) {
     alert('Vérification impossible : ' + (e.message || e));
