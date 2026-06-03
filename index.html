@@ -2786,6 +2786,10 @@ body.prof-mode .prof-mode-badge { display: flex; }
           <span class="icon" id="prof-toggle-icon">👤</span>
           <span><span id="prof-toggle-label">Activer le mode professeur</span><br><span style="font-size:12px; color:var(--muted); font-weight:normal;" id="prof-toggle-sub">pour annoter et renvoyer les fiches aux élèves</span></span>
         </button>
+        <button class="modal-action" id="home-menu-prof-password" style="display:none;">
+          <span class="icon">🔑</span>
+          <span>Changer le mot de passe du mode prof<br><span style="font-size:12px; color:var(--muted); font-weight:normal;">visible uniquement quand le mode prof est actif</span></span>
+        </button>
       </div>
     </div>
   </div>
@@ -2819,9 +2823,9 @@ body.prof-mode .prof-mode-badge { display: flex; }
 // ============================================
 // VERSION DE L'APP — affichée sur l'accueil pour vérifier qu'on est bien sur la dernière version déployée
 // ============================================
-const APP_VERSION = '0.18.1';
+const APP_VERSION = '0.18.2';
 const APP_BUILD   = '2026-05-26';
-const APP_NOTES   = 'Mode professeur protégé par mot de passe (les élèves voient les commentaires automatiquement, sans rien activer).';
+const APP_NOTES   = 'Mot de passe du mode professeur personnalisable depuis le menu (en mode prof actif).';
 
 // ============================================
 // CONSEILS — popups chargés depuis tips.md à l'ouverture
@@ -3273,10 +3277,28 @@ function formatDateInput(iso) {
 // MODE PROFESSEUR — toggle persisté + protégé par mot de passe
 // ============================================
 const PROF_MODE_KEY = 'pfmp-mode-prof-v1';
-// Mot de passe pour activer le mode prof (à changer librement ici)
-// Les élèves voient le bouton mais ne peuvent pas activer le mode sans ce code.
-// La désactivation, elle, ne demande pas de mot de passe.
-const PROF_PASSWORD = 'othily2026';
+const PROF_PASSWORD_KEY = 'pfmp-prof-password-v1';
+// Mot de passe par défaut, utilisé tant que le prof ne l'a pas personnalisé.
+// Les élèves voient le bouton "Activer le mode professeur" mais ne peuvent pas
+// activer ce mode sans le mot de passe. La désactivation reste libre.
+const PROF_PASSWORD_DEFAULT = 'othily2026';
+
+function getProfPassword() {
+  try {
+    const stored = localStorage.getItem(PROF_PASSWORD_KEY);
+    if (stored && stored.length > 0) return stored;
+  } catch (e) {}
+  return PROF_PASSWORD_DEFAULT;
+}
+function setProfPassword(newPwd) {
+  try { localStorage.setItem(PROF_PASSWORD_KEY, newPwd); } catch (e) {}
+}
+function isProfPasswordCustom() {
+  try {
+    const stored = localStorage.getItem(PROF_PASSWORD_KEY);
+    return !!(stored && stored.length > 0);
+  } catch (e) { return false; }
+}
 
 function isProfMode() {
   try { return localStorage.getItem(PROF_MODE_KEY) === '1'; } catch (e) { return false; }
@@ -3287,12 +3309,33 @@ function promptProfPassword() {
   const pwd = window.prompt(
     'Activation du mode professeur\n\n' +
     'Saisis le mot de passe pour annoter des fiches.\n' +
-    '(Si tu es élève, tu n\'as pas besoin de ce mode — les commentaires de ton prof s\'affichent automatiquement.)'
+    (isProfPasswordCustom() ? '' : '(Mot de passe par défaut : othily2026 — tu pourras le changer ensuite dans le menu.)\n') +
+    '\nSi tu es élève, tu n\'as pas besoin de ce mode — les commentaires de ton prof s\'affichent automatiquement.'
   );
   if (pwd == null) return false; // Annulation
-  if (pwd.trim().toLowerCase() === PROF_PASSWORD.toLowerCase()) return true;
+  if (pwd === getProfPassword()) return true;
   alert('Mot de passe incorrect.');
   return false;
+}
+
+// Permet à la prof de changer son mot de passe (depuis le menu, en mode prof actif)
+function changeProfPassword() {
+  if (!isProfMode()) {
+    alert('Active d\'abord le mode professeur pour changer le mot de passe.');
+    return;
+  }
+  const current = window.prompt('Mot de passe actuel ?');
+  if (current == null) return;
+  if (current !== getProfPassword()) { alert('Mot de passe actuel incorrect.'); return; }
+  const newPwd = window.prompt('Nouveau mot de passe (4 caractères minimum) :');
+  if (newPwd == null) return;
+  const cleaned = newPwd.trim();
+  if (cleaned.length < 4) { alert('Mot de passe trop court (4 caractères minimum).'); return; }
+  const confirmPwd = window.prompt('Confirme le nouveau mot de passe :');
+  if (confirmPwd == null) return;
+  if (confirmPwd.trim() !== cleaned) { alert('Les deux mots de passe ne correspondent pas.'); return; }
+  setProfPassword(cleaned);
+  alert('✓ Mot de passe mis à jour.\n\nIl sera demandé à la prochaine activation du mode professeur sur cet appareil.');
 }
 
 function setProfMode(on) {
@@ -3315,15 +3358,18 @@ function updateProfToggleUI() {
   const icon = document.getElementById('prof-toggle-icon');
   const label = document.getElementById('prof-toggle-label');
   const sub = document.getElementById('prof-toggle-sub');
+  const pwdBtn = document.getElementById('home-menu-prof-password');
   if (!icon || !label || !sub) return;
   if (isProfMode()) {
     icon.textContent = '🎓';
     label.textContent = 'Mode professeur activé';
     sub.textContent = 'Touchez pour revenir en mode élève';
+    if (pwdBtn) pwdBtn.style.display = '';
   } else {
     icon.textContent = '👤';
     label.textContent = 'Activer le mode professeur';
     sub.textContent = 'pour annoter et renvoyer les fiches aux élèves';
+    if (pwdBtn) pwdBtn.style.display = 'none';
   }
 }
 
@@ -6501,6 +6547,10 @@ document.getElementById('home-menu-update').addEventListener('click', () => { cl
 document.getElementById('home-menu-prof-toggle').addEventListener('click', () => {
   setProfMode(!isProfMode());
   closeHomeMenu();
+});
+document.getElementById('home-menu-prof-password').addEventListener('click', () => {
+  closeHomeMenu();
+  changeProfPassword();
 });
 // Initialisation de l'UI du toggle au chargement
 updateProfToggleUI();
