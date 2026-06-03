@@ -3053,11 +3053,11 @@ body.prof-mode .prof-mode-badge { display: flex; }
 // ============================================
 // VERSION DE L'APP — affichée sur l'accueil pour vérifier qu'on est bien sur la dernière version déployée
 // ============================================
-const APP_VERSION = '0.20.1';
+const APP_VERSION = '0.20.2';
 const APP_BUILD   = '2026-05-26';
 // APP_NOTES n'est plus affiché dans le footer (remplacé par le bouton "Notes de version").
 // Garde la dernière note ici uniquement à titre informatif pour la maintenance.
-const APP_NOTES   = 'Correctif : la bannière "Mise à jour effectuée" persiste réellement même quand le SW s\'auto-installe.';
+const APP_NOTES   = 'Vraie persistance de la bannière de mise à jour + mode test ?test-banner=1.';
 
 // ============================================
 // CONSEILS — popups chargés depuis tips.md à l'ouverture
@@ -7209,21 +7209,48 @@ function activatePendingSW() {
 //
 // Ce mécanisme marche que la mise à jour ait été déclenchée par notre bouton
 // "Recharger" OU automatiquement par le Service Worker (skipWaiting à l'install).
+// Détecte si l'utilisateur est un "vrai nouveau" (rien dans le localStorage)
+// ou s'il a déjà utilisé l'app avant. Sert pour la première migration vers
+// le système de bannière persistante : on ne veut pas spammer un vrai nouveau,
+// mais on veut bien afficher la bannière à quelqu'un qui était déjà sur une
+// ancienne version.
+function isReturningUser() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      // N'importe quelle clé pfmp-* (sauf LAST_SEEN qu'on est en train de poser) = utilisateur existant
+      if (k.startsWith('pfmp-') && k !== LAST_SEEN_VERSION_KEY) return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
 function checkPostUpdateBanner() {
+  // Mode test : ?test-banner=1 dans l'URL force l'affichage pour vérifier le visuel
+  try {
+    if (new URLSearchParams(location.search).get('test-banner') === '1') {
+      setTimeout(() => showUpdateDoneBanner(APP_VERSION), 200);
+      return;
+    }
+  } catch (e) {}
+
   let lastSeen = null;
   try { lastSeen = localStorage.getItem(LAST_SEEN_VERSION_KEY); } catch (e) {}
 
   if (!lastSeen) {
-    // Première ouverture sur cet appareil (ou localStorage effacé) : on enregistre
-    // la version actuelle, mais on n'affiche PAS la bannière (l'utilisateur ne vient
-    // pas de mettre à jour, il découvre l'app).
+    // La clé "dernière version vue" n'existe pas encore. Deux cas :
+    //  1) Vrai nouveau : aucune autre donnée → on s'enregistre silencieusement, pas de bannière
+    //  2) Utilisateur existant qui passait depuis une version sans ce système →
+    //     on considère qu'une mise à jour s'est produite et on affiche la bannière
     try { localStorage.setItem(LAST_SEEN_VERSION_KEY, APP_VERSION); } catch (e) {}
-    return;
-  }
-
-  if (lastSeen !== APP_VERSION) {
-    // Mise à jour détectée : on enregistre la nouvelle version vue + on pose le
-    // drapeau "bannière à afficher pour cette version".
+    if (isReturningUser()) {
+      try { localStorage.setItem(UPDATE_BANNER_PENDING_KEY, APP_VERSION); } catch (e) {}
+    } else {
+      return;
+    }
+  } else if (lastSeen !== APP_VERSION) {
+    // Mise à jour détectée
     try {
       localStorage.setItem(LAST_SEEN_VERSION_KEY, APP_VERSION);
       localStorage.setItem(UPDATE_BANNER_PENDING_KEY, APP_VERSION);
@@ -7234,10 +7261,8 @@ function checkPostUpdateBanner() {
   let pending = null;
   try { pending = localStorage.getItem(UPDATE_BANNER_PENDING_KEY); } catch (e) {}
   if (pending && pending === APP_VERSION) {
-    // Petite tempo pour laisser le DOM se peindre avant l'animation d'entrée
     setTimeout(() => showUpdateDoneBanner(APP_VERSION), 200);
   } else if (pending && pending !== APP_VERSION) {
-    // Marqueur orphelin (ancienne version) → nettoyage
     try { localStorage.removeItem(UPDATE_BANNER_PENDING_KEY); } catch (e) {}
   }
 }

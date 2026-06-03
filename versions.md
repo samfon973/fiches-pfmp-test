@@ -4,10 +4,16 @@ Historique des mises à jour de l'application.
 
 ---
 
+## v0.20.2 — 26 mai 2026
+
+- **Correctif** : la bannière « Mise à jour effectuée » est désormais vraiment persistante pour les utilisateurs déjà existants. Mécanisme de compatibilité automatique lors de la migration depuis une ancienne version.
+- Mode test : ajouter `?test-banner=1` à l'URL pour forcer l'affichage de la bannière (utile pour valider visuellement sans attendre une vraie mise à jour).
+
+---
+
 ## v0.20.1 — 26 mai 2026
 
-- **Correctif** : la bannière « Mise à jour effectuée » est désormais réellement persistante, même quand le Service Worker s'installe automatiquement en arrière-plan (cas le plus fréquent sur smartphone).
-- Détection des mises à jour basée sur la comparaison de version au chargement, plus fiable.
+- Tentative de correctif sur la persistance de la bannière (incomplète, voir v0.20.2).
 
 ---
 
